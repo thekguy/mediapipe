@@ -30,7 +30,7 @@ mediapipe_cc_proto_library(
     name = "cropping_cc_proto",
     srcs = ["cropping.proto"],
     cc_deps = ["//mediapipe/examples/desktop/autoflip:autoflip_messages_cc_proto"],
-    visibility = ["//mediapipe/examples:__subpackages__"],
+    visibility = ["//visibility:public"],
     deps = [":cropping_proto"],
 )
 

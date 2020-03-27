@@ -32,6 +32,7 @@ cc_library(
         "//mediapipe/framework/port:ret_check",
         "//mediapipe/framework/port:status",
     ],
+    visibility = ["//visibility:public"],
     alwayslink = 1,
 )
 
@@ -88,6 +89,7 @@ cc_library(
         "//mediapipe/framework/port:status",
         "@com_google_absl//absl/strings",
     ],
+    visibility = ["//visibility:public"],
     alwayslink = 1,
 )
 
@@ -173,6 +175,7 @@ cc_library(
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings:str_format",
     ],
+    visibility = ["//visibility:public"],
     alwayslink = 1,  # buildozer: disable=alwayslink-with-hdrs
 )
 
@@ -207,6 +210,7 @@ cc_library(
         "//mediapipe/framework/port:ret_check",
         "//mediapipe/framework/port:status",
     ],
+    visibility = ["//visibility:public"],
     alwayslink = 1,
 )
 
@@ -327,6 +331,7 @@ cc_library(
         "//mediapipe/framework/port:status",
         "@com_google_absl//absl/memory",
     ],
+    visibility = ["//visibility:public"],
     alwayslink = 1,
 )
 
