@@ -391,7 +391,7 @@ void SceneCroppingCalculator::FilterKeyFrameInfo() {
     MP_RETURN_IF_ERROR(frame_crop_region_computer_->ComputeFrameCropRegion(
         key_frame_infos_[i], &key_frame_crop_results[i]));
   }
-
+  VLOG(1) << "Analyzing scene camera motion part 1";
   // Analyzes scene camera motion and generates FocusPointFrames.
   auto analyzer_options = options_.scene_camera_motion_analyzer_options();
   analyzer_options.set_allow_sweeping(analyzer_options.allow_sweeping() &&
@@ -401,24 +401,28 @@ void SceneCroppingCalculator::FilterKeyFrameInfo() {
   SceneKeyFrameCropSummary scene_summary;
   std::vector<FocusPointFrame> focus_point_frames;
   SceneCameraMotion scene_camera_motion;
+  VLOG(1) << "Analyzing scene camera motion part 2";
   MP_RETURN_IF_ERROR(
       scene_camera_motion_analyzer_->AnalyzeSceneAndPopulateFocusPointFrames(
           key_frame_infos_, key_frame_crop_options_, key_frame_crop_results,
           frame_width_, effective_frame_height_, scene_frame_timestamps_,
           &scene_summary, &focus_point_frames, &scene_camera_motion));
 
+  VLOG(1) << "Cropping scene frames";
   // Crops scene frames.
   std::vector<cv::Mat> cropped_frames;
   MP_RETURN_IF_ERROR(scene_cropper_->CropFrames(
       scene_summary, scene_frames_, focus_point_frames,
       prior_focus_point_frames_, &cropped_frames));
 
+  VLOG(1) << "Formatting and outputting croppedframes";
   // Formats and outputs cropped frames.
   bool apply_padding = false;
   float vertical_fill_precent;
   MP_RETURN_IF_ERROR(FormatAndOutputCroppedFrames(
       cropped_frames, &apply_padding, &vertical_fill_precent, cc));
 
+  VLOG(1) << "Caching prior FocusPointFrames";
   // Caches prior FocusPointFrames if this was not the end of a scene.
   prior_focus_point_frames_.clear();
   if (!is_end_of_scene) {
@@ -429,6 +433,7 @@ void SceneCroppingCalculator::FilterKeyFrameInfo() {
     }
   }
 
+  VLOG(1) << "Outputting visualization frames";
   // Optionally outputs visualization frames.
   MP_RETURN_IF_ERROR(OutputVizFrames(key_frame_crop_results, focus_point_frames,
                                      scene_summary.crop_window_width(),
@@ -439,6 +444,7 @@ void SceneCroppingCalculator::FilterKeyFrameInfo() {
   VLOG(1) << absl::StrFormat("Processed a scene from %.2f sec to %.2f sec",
                              start_sec, end_sec);
 
+  VLOG(1) << "Making summary";
   // Optionally makes summary.
   if (cc->Outputs().HasTag(kOutputSummary)) {
     auto* scene_summary = summary_->add_scene_summaries();
@@ -449,6 +455,7 @@ void SceneCroppingCalculator::FilterKeyFrameInfo() {
     scene_summary->set_is_padded(apply_padding);
   }
 
+  VLOG(1) << "Cleanup";
   key_frame_infos_.clear();
   scene_frames_.clear();
   scene_frame_timestamps_.clear();

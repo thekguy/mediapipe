@@ -82,7 +82,7 @@ class SceneCameraMotionAnalyzer {
   // SceneKeyFrameCropSummary, SceneCameraMotion, and scene frame timestamps.
   ::mediapipe::Status PopulateFocusPointFrames(
       const SceneKeyFrameCropSummary& scene_summary,
-      const SceneCameraMotion& scene_camera_motion,
+      SceneCameraMotion& scene_camera_motion,
       const std::vector<int64>& scene_frame_timestamps,
       std::vector<FocusPointFrame>* focus_point_frames) const;
 
@@ -113,6 +113,7 @@ class SceneCameraMotionAnalyzer {
   // camera is tracking the crop regions.
   ::mediapipe::Status PopulateFocusPointFramesForTracking(
       const SceneKeyFrameCropSummary& scene_summary,
+      SceneCameraMotion& scene_camera_motion,
       const FocusPointFrameType focus_point_frame_type,
       const std::vector<int64>& scene_frame_timestamps,
       std::vector<FocusPointFrame>* focus_point_frames) const;
@@ -122,6 +123,11 @@ class SceneCameraMotionAnalyzer {
       const float look_at_center_x, const float look_at_center_y,
       const int crop_window_width, const int crop_window_height,
       SceneKeyFrameCropSummary* scene_summary,
+      SceneCameraMotion* scene_camera_motion) const;
+
+  // Decide to use tracking motion.
+  ::mediapipe::Status ToUseTrackingMotion(
+      const float center_x, const float center_y, const float start_sec,
       SceneCameraMotion* scene_camera_motion) const;
 
   // Decide to use sweeping motion.

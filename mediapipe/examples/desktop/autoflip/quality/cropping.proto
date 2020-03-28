@@ -141,6 +141,7 @@ message SceneKeyFrameCropSummary {
   optional float vertical_motion_amount = 18;
 }
 
+
 // Scene camera motion determined by the SceneCameraMotionAnalyzer class.
 message SceneCameraMotion {
   // Camera focuses on a fixed center throughout the scene.
@@ -151,6 +152,12 @@ message SceneCameraMotion {
   }
   // Camera tracks key frame salient region centers.
   message TrackingMotion {
+    message TrackedKeyFrame {
+      optional float center_x = 1;
+      optional float center_y = 2;
+      optional double start_sec = 3;
+    }
+    repeated TrackedKeyFrame key_frame = 1;
     // Fields to be added if necessary.
   }
   // Camera sweeps from one point to another.

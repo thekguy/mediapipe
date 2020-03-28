@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "mediapipe/examples/desktop/autoflip/quality/scene_camera_motion_analyzer.h"
-
+#include "mediapipe/examples/desktop/autoflip/quality/cropping.pb.h"
 #include <limits>
 
 #include "absl/memory/memory.h"
@@ -40,6 +40,7 @@ SceneCameraMotionAnalyzer::AnalyzeSceneAndPopulateFocusPointFrames(
     SceneKeyFrameCropSummary* scene_summary,
     std::vector<FocusPointFrame>* focus_point_frames,
     SceneCameraMotion* scene_camera_motion) const {
+  VLOG(1) << "Entering AnalyzeSceneAndPopulateFocusPointFrames";
   MP_RETURN_IF_ERROR(AggregateKeyFrameResults(
       key_frame_infos, key_frame_crop_options, key_frame_crop_results,
       scene_frame_width, scene_frame_height, scene_summary));
@@ -50,12 +51,14 @@ SceneCameraMotionAnalyzer::AnalyzeSceneAndPopulateFocusPointFrames(
           : scene_frame_timestamps.back() - scene_frame_timestamps.front();
   const double scene_span_sec = TimestampDiff(scene_span_ms).Seconds();
   SceneCameraMotion camera_motion;
+  VLOG(1) << "About to DecideCameraMotionType";
   MP_RETURN_IF_ERROR(DecideCameraMotionType(
       key_frame_crop_options, scene_span_sec, scene_summary, &camera_motion));
   if (scene_camera_motion != nullptr) {
     *scene_camera_motion = camera_motion;
   }
 
+  VLOG(1) << "About to PopulateFocusPointFrames";
   return PopulateFocusPointFrames(*scene_summary, camera_motion,
                                   scene_frame_timestamps, focus_point_frames);
 }
@@ -71,6 +74,25 @@ SceneCameraMotionAnalyzer::AnalyzeSceneAndPopulateFocusPointFrames(
   steady_motion->set_steady_look_at_center_x(look_at_center_x);
   steady_motion->set_steady_look_at_center_y(look_at_center_y);
   return ::mediapipe::OkStatus();
+}
+
+::mediapipe::Status SceneCameraMotionAnalyzer::ToUseTrackingMotion(
+    const float center_x, const float center_y, const float start_sec,
+    SceneCameraMotion* scene_camera_motion) const {
+    if (scene_camera_motion) {
+      auto* tracking_motion = scene_camera_motion->mutable_tracking_motion();
+      if (tracking_motion) {
+        auto* key_frame = tracking_motion->add_key_frame();
+        RET_CHECK_NE(key_frame, nullptr) << "Tracking motion key frame is null.";
+        key_frame->set_center_x(center_x);
+        key_frame->set_center_y(center_y);
+        key_frame->set_start_sec(start_sec);
+      } else {
+        VLOG(1) << "tracking_motion == null";
+      }
+    } else {
+      VLOG(1) << "scene_camera_motion == null";
+    }
 }
 
 ::mediapipe::Status SceneCameraMotionAnalyzer::ToUseSweepingMotion(
@@ -280,7 +302,7 @@ SceneCameraMotionAnalyzer::AddFocusPointsFromCenterTypeAndWeight(
 
 ::mediapipe::Status SceneCameraMotionAnalyzer::PopulateFocusPointFrames(
     const SceneKeyFrameCropSummary& scene_summary,
-    const SceneCameraMotion& scene_camera_motion,
+    SceneCameraMotion& scene_camera_motion,
     const std::vector<int64>& scene_frame_timestamps,
     std::vector<FocusPointFrame>* focus_point_frames) const {
   RET_CHECK_NE(focus_point_frames, nullptr)
@@ -346,8 +368,9 @@ SceneCameraMotionAnalyzer::AddFocusPointsFromCenterTypeAndWeight(
   } else if (scene_camera_motion.has_tracking_motion()) {
     // Camera tracks crop regions.
     RET_CHECK_GT(scene_summary.num_key_frames(), 0) << "No key frames.";
+    
     return PopulateFocusPointFramesForTracking(
-        scene_summary, focus_point_frame_type, scene_frame_timestamps,
+        scene_summary, scene_camera_motion, focus_point_frame_type, scene_frame_timestamps,
         focus_point_frames);
   } else {
     return ::mediapipe::Status(StatusCode::kInvalidArgument,
@@ -364,6 +387,7 @@ SceneCameraMotionAnalyzer::AddFocusPointsFromCenterTypeAndWeight(
 ::mediapipe::Status
 SceneCameraMotionAnalyzer::PopulateFocusPointFramesForTracking(
     const SceneKeyFrameCropSummary& scene_summary,
+    SceneCameraMotion& scene_camera_motion,
     const FocusPointFrameType focus_point_frame_type,
     const std::vector<int64>& scene_frame_timestamps,
     std::vector<FocusPointFrame>* focus_point_frames) const {
@@ -388,9 +412,13 @@ SceneCameraMotionAnalyzer::PopulateFocusPointFramesForTracking(
     }
     const double relative_timestamp =
         key_frame_compact_infos[i].timestamp_ms() - timestamp_offset;
+    
     center_x_function.AddPoint(relative_timestamp, center_x);
     center_y_function.AddPoint(relative_timestamp, center_y);
     score_function.AddPoint(relative_timestamp, score);
+
+    MP_RETURN_IF_ERROR(ToUseTrackingMotion(center_x, center_y, relative_timestamp, 
+                                           &scene_camera_motion));
   }
 
   double max_score = 0.0;
